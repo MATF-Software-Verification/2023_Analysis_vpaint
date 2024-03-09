@@ -1,0 +1,3 @@
+[submodule "vpaint"]
+	path = vpaint
+	url = https://github.com/dalboris/vpaint.git
