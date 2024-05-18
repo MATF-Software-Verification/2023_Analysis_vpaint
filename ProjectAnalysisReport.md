@@ -99,7 +99,7 @@ Objašnjenje dodatnih opcija:
 - `--suppressions-list=suppressions.txt` - putanja do fajla u kome su navedene sve provere koje će se ignorisati prilikom analize. U ovom slučaju, provere koje su izostavljene su *missingInclude* i *information*. 
 - `--output-file=cppccheck_txt_report.txt` - putanja do fajla u kome će biti upisan rezultat analize
 
-Komanda se može pokrenuti i skriptom `cppcheck.sh`. Rezultat analize se može videti u fajlu `cppccheck_txt_report.txt`, međutim ukoliko želimo čitljiviji rezultat, Cppcheck omogućava generisanje *html* izveštaja. Najpre je potrebno izveštaj sačuvati u *xml* formatu:
+Komanda se može pokrenuti i skriptom [`cppcheck.sh`](cppcheck/cppcheck.sh). Rezultat analize se može videti u fajlu [`cppcheck_txt_report.txt`](cppcheck/cppcheck_txt_report.txt), međutim ukoliko želimo čitljiviji rezultat, Cppcheck omogućava generisanje *html* izveštaja. Najpre je potrebno izveštaj sačuvati u *xml* formatu:
 
 ```
 cppcheck --enable=all -isrc/Third --suppressions-list=suppressions.txt --output-file=cppcheck_xml_report.xml --xml ../vpaint
@@ -111,9 +111,36 @@ HTML izveštaj se onda generiše i čuva u direktoriijumu `report` na sledeći n
 cppcheck-htmlreport --file cppcheck_xml_report.xml --report-dir=report
 ```
 
-Ovi koraci se mogu naći u skripti `cppcheck-htmlreport.sh`.
+Ovi koraci se mogu naći u skripti [`cppcheck-htmlreport.sh`](cppcheck/cppcheck-htmlreport.sh).
 
-Najviše upozorenja je tipa `style`, pri čemu su uočene funkcije koje su definisane a nekorišćene, nedostatak ključne reči override kod funkcija koje bi trebalo da pregaze istoimene funkcije iz bazne klase, napomena da neke promenljive mogu biti definisane kao `const`.
+Najviše upozorenja je tipa `style`, pri čemu su uočene funkcije koje su definisane a nekorišćene, nedostatak ključne reči override kod funkcija koje bi trebalo da pregaze istoimene funkcije iz bazne klase, napomena da neke promenljive mogu biti definisane kao `const`. Jedno od zanimljivijih preporuka se odnosi na definisanje `explicit` konstruktora ukoliko oni imaju samo jedan argument:
+
+![](cppcheck/images/explicit-constructor.png)
+
+
+Drugi zanimljiviji primeri iz izveštaja:
+
+Upozorenje o "senčenju" promenljivih kada se radi grananje ili u petljama. Preporuka je da se koriste jedinstveni nazivi promenljivih radi lakše čitljivosti i izbegavanja grešaka.
+
+![](cppcheck/images/cppcheck-shadowvar.png)
+
+Upozorenje da se assert izrazi zanemaruju tokom prevođenja u `release` modu i da se funkcija koja ima sporedne efekte neće izvršavati u tom slučaju.
+
+![](cppcheck/images/assert-side-effect.png)
+
+Neki značajniji bagovi nisu uočeni analizom. Cppcheck je naredni deo koda označio kao `error`:
+
+```
+../vpaint/src/VAC/VectorAnimationComplex/Cell.cpp:580:5: error:There is an unknown macro here somewhere. Configuration is required. If foreach is a macro then please configure it. [unknownMacro]
+    foreach(Cell * c, spatialBoundary())
+```
+
+Međutim, `foreach` makro se nalazi u okviru Qt biblioteke što statički analizator ne može da zna.
+
+### Zaključak
+
+Izveštaj dobijen analizom Cppcheck daje dobre preporuke za poboljšanje čitljivosti koda i izbegavanje potencijalnih grešaka. Ovaj alat je dobar dodatak uz prethodno korišćene Clang alate za statičku analizu jer prijavljuje upozorenja koja se nisu pojavila primenom drugih alata. Kao i za druge alate, moguča su lažna upozorenja jer Cppcheck ne analizira spoljašnje biblioteke.
+
 
 ## Valgrind
 
