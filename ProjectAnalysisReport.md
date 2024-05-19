@@ -89,7 +89,7 @@ sudo apt install cppcheck
 
 Nakon instalacije, pozicioniranjem u direktorijum `cppcheck` pokrenuti komandu kojom se projekat analizira alatom:
 
-```
+```bash
 cppcheck --enable=all -isrc/Third --suppressions-list=suppressions.txt --output-file=cppcheck_txt_report.txt ../vpaint
 ```
 
@@ -101,13 +101,13 @@ Objašnjenje dodatnih opcija:
 
 Komanda se može pokrenuti i skriptom [`cppcheck.sh`](cppcheck/cppcheck.sh). Rezultat analize se može videti u fajlu [`cppcheck_txt_report.txt`](cppcheck/cppcheck_txt_report.txt), međutim ukoliko želimo čitljiviji rezultat, Cppcheck omogućava generisanje *html* izveštaja. Najpre je potrebno izveštaj sačuvati u *xml* formatu:
 
-```
+```bash
 cppcheck --enable=all -isrc/Third --suppressions-list=suppressions.txt --output-file=cppcheck_xml_report.xml --xml ../vpaint
 ```
 
 HTML izveštaj se onda generiše i čuva u direktoriijumu `report` na sledeći način:
 
-```
+```bash
 cppcheck-htmlreport --file cppcheck_xml_report.xml --report-dir=report
 ```
 
@@ -124,7 +124,7 @@ Upozorenje o "senčenju" promenljivih kada se radi grananje ili u petljama. Prep
 
 ![](cppcheck/images/cppcheck-shadowvar.png)
 
-Upozorenje da se assert izrazi zanemaruju tokom prevođenja u `release` modu i da se funkcija koja ima sporedne efekte neće izvršavati u tom slučaju.
+Upozorenje da se assert izrazi zanemaruju tokom prevođenja u *release* modu i da se funkcija koja ima sporedne efekte neće izvršavati u tom slučaju.
 
 ![](cppcheck/images/assert-side-effect.png)
 
@@ -144,8 +144,104 @@ Izveštaj dobijen analizom Cppcheck daje dobre preporuke za poboljšanje čitlji
 
 ## Valgrind
 
+Valgrind je projekat otvorenog koda koji omogućava naprednu dinamičku analizu koda. U okviru *Valgrind*-a mogu se koristiti sledeći alati:
+- *Memcheck* - detktor memorijskih grešaka
+- *Massif* - praćenje rada dinamičke memorije
+- *Callgrind* - profajler funkcija
+- *Cachegrind* - profajler keš memorije
+- *Helgrind* i *DRD* - detektori grešaka pri radu sa nitima
+
+Valgrind se instalira sledećom komandom:
+
+```bash
+sudo apt install valgrind
+```
+
+Pre pokretanja bilo kog Valgrind alata, neophodno je prevesti program u *debug* modu:
+
+```bash
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE=Debug ../vpaint
+make
+cd ..
+```
+
+U nastavku su opisani primena i rezultati analize alata Memcheck i Cachegrind.
+
 ### Memcheck
 
+Memcheck je alat koji služi za analizu mašinskog koda i detekciju memorijskih grešaka programa. Neki od uobičajenih problema u radu sa memorijom mogu biti curenje memorije, pristup već oslobođenoj memoriji, korišćenje neinicijalizovanih vrednosti, neispravno oslobađanje hip memorije...
+
+Memcheck se može pokrenuti sledećom komandom iz terminala:
+
+```bash
+valgrind --tool=memcheck --leak-check=full --show-leak-kinds=all --track-origins=yes --log-file=memcheck.txt ../build/src/GUI/VPaint
+```
+
+Pri čemu su korišćene sledeće dodatne opcije:
+
+- `--leak-check=full` - analizira se da li je došlo do curenja memorije u programu. Ukoliko su odabrane opcije full ili yes, zabeležiće se svako mesto u kodu u kome dolazi do curenja memorije.
+- -`-show-leak-kinds=all` - prikazuje sve vrste curenja memorije (još uvek dostižno, definitivno izgubljen, indirektno izgubljen, moguće izgubljen)
+- `--track-origins=yes` - memcheck prati u kom delu koda je došlo do pojavljivanja neinicijalizovanih vrednosti što omoogućava lakše debagovanje.
+- `--log-file=memcheck.txt` - putanja do fajla u kome će biti izveštaj analize
+
+Nakon pokretanja komande i korišćenja programa neko vreme, dobijen je sledeći rezime:
+```
+==17577== LEAK SUMMARY:
+==17577==    definitely lost: 7,096 bytes in 37 blocks
+==17577==    indirectly lost: 13,983 bytes in 207 blocks
+==17577==      possibly lost: 160 bytes in 1 blocks
+==17577==    still reachable: 1,002,132 bytes in 13,399 blocks
+==17577==         suppressed: 0 bytes in 0 blocks
+```
+
+Ceo izveštaj se može naći u fajlu [memcheck.txt](valgrind/memcheck/memcheck.txt).
+
+Na osnovu rezimea se primećuje se da ima dosta primera curenja memorije. Međutim, pregledanjem individualnih slučaja vidi se da su funkcije iz biblioteka Qt i OpenGL skoro uvek odgovorne za alociranje memorije.
+
+Stek poziva funkcije u kojoj je detektovan indirektno izgubljen blok koji su autori projekta inicijalizovali:
+
+```
+==17577== 48 bytes in 1 blocks are indirectly lost in loss record 2,213 of 3,281
+==17577==    at 0x4849013: operator new(unsigned long) (in /usr/libexec/valgrind/vgpreload_memcheck-amd64-linux.so)
+==17577==    by 0x214ABB: ViewSettingsWidget::ViewSettingsWidget(ViewSettings&, QWidget*) (ViewSettings.cpp:369)
+==17577==    by 0x1F765A: View::View(Scene*, QWidget*) (View.cpp:67)
+==17577==    by 0x2178FF: ViewWidget::ViewWidget(Scene*, QWidget*) (ViewWidget.cpp:26)
+==17577==    by 0x170DD1: MultiView::createView_() (MultiView.cpp:92)
+==17577==    by 0x170C07: MultiView::MultiView(Scene*, QWidget*) (MultiView.cpp:74)
+==17577==    by 0x15A442: MainWindow::MainWindow() (MainWindow.cpp:121)
+==17577==    by 0x14EADB: main (main.cpp:39)
+```
+U pitanju je inicijalizacija widget-a `QMenu` i action-a `QWidgetAction`.
+
+```c++
+    QMenu * displayModeMenu = new QMenu();
+    QWidgetAction * displayModeWidgetAction = new QWidgetAction(this);
+    displayModeWidgetAction->setDefaultWidget(displayModeWidget);
+    displayModeMenu->addAction(displayModeWidgetAction);
+    ...
+    displayModeButton_->setMenu(displayModeMenu);
+```
+
+Inicijalizovani widget-i se dodaju na privatni atribut `displayModeButton_` klase `ViewSettings`. Memcheck upozorava da je došlo do curenja memorije jer se u funkciji nigde ne poziva destruktor inicijalizovanih objekata. Međutim do curenja memorije najverovatnije **neće** doći jer pozivom destruktora roditeljskog Qt objekta pozivaju se i destruktori svih naslednika, što se i spominje u [dokumentaciji za QObject](https://doc.qt.io/qt-6/qobject.html#dtor.QObject) (nadklasa svih objekata `Qt` biblioteke).
+
 ### Cachegrind
+
+Cachegrind je profajler keš memorije koji prati pogotke i promašaje u keš memoriji. Dodatno, meri i tačan broj instrukcija na nivou fajla, funkcija ili linija koje je izvršio program koji se analizira. 
+
+Naredna komanda pokreće analizu Cachegrind-a:
+
+```bash
+valgrind --tool=cachegrind --cache-sim=yes ../build/src/GUI/.VPaint
+```
+
+Dodatna komanda koja se koristi u ovom slučaju je `--cache-sim=yes` koja omogućava prikupljanje informacija o pogocima i promašajima u keš memoriji. Rezultat analize se upisuje u fajl pod nazivom `cachegrind.out.<pid>`. Ukoliko želimo izveštaj u čitljivijem i detaljnijem obliku, koristimo komandu `cg_annotate`.
+
+```bash
+cg_annotate cachegrind.out.* > cachegrind-report.txt
+```
+
+
 
 ## Perf
