@@ -233,15 +233,101 @@ Cachegrind je profajler keš memorije koji prati pogotke i promašaje u keš mem
 Naredna komanda pokreće analizu Cachegrind-a:
 
 ```bash
-valgrind --tool=cachegrind --cache-sim=yes ../build/src/GUI/.VPaint
+valgrind --tool=cachegrind --cache-sim=yes ../../build/src/Gui/VPaint
 ```
 
-Dodatna komanda koja se koristi u ovom slučaju je `--cache-sim=yes` koja omogućava prikupljanje informacija o pogocima i promašajima u keš memoriji. Rezultat analize se upisuje u fajl pod nazivom `cachegrind.out.<pid>`. Ukoliko želimo izveštaj u čitljivijem i detaljnijem obliku, koristimo komandu `cg_annotate`.
+Dodatna komanda koja se koristi u ovom slučaju je `--cache-sim=yes` koja omogućava prikupljanje informacija o pogocima i promašajima u keš memoriji. Rezultat analize se upisuje u fajl pod nazivom `cachegrind.out.<pid>`. 
+
+Nakon nekog vremena korišćenja programa, ispisuju se statistike o izvršavanju programa:
+
+```
+==5884== I   refs:      7,426,696,543
+==5884== I1  misses:       50,940,875
+==5884== LLi misses:        8,016,607
+==5884== I1  miss rate:          0.69%
+==5884== LLi miss rate:          0.11%
+==5884== 
+==5884== D   refs:      3,174,003,465  (1,838,695,292 rd   + 1,335,308,173 wr)
+==5884== D1  misses:      300,450,223  (  128,787,326 rd   +   171,662,897 wr)
+==5884== LLd misses:      204,030,158  (   88,631,006 rd   +   115,399,152 wr)
+==5884== D1  miss rate:           9.5% (          7.0%     +          12.9%  )
+==5884== LLd miss rate:           6.4% (          4.8%     +           8.6%  )
+==5884== 
+==5884== LL refs:         351,391,098  (  179,728,201 rd   +   171,662,897 wr)
+==5884== LL misses:       212,046,765  (   96,647,613 rd   +   115,399,152 wr)
+==5884== LL miss rate:            2.0% (          1.0%     +           8.6%  )
+```
+
+Primećujemo da je najviše promašaja na nivou `D1` keš memorije (deo keš memorije u koji se smeštaju podaci).
+
+Ukoliko želimo detaljniji izveštaj, koristimo komandu `cg_annotate`.
 
 ```bash
 cg_annotate cachegrind.out.* > cachegrind-report.txt
 ```
 
+```
+--------------------------------------------------------------------------------
+I1 cache:         32768 B, 64 B, 8-way associative
+D1 cache:         49152 B, 64 B, 12-way associative
+LL cache:         12582912 B, 64 B, 12-way associative
+Command:          ../../build/src/Gui/VPaint
+Data file:        cachegrind.out.5884
+Events recorded:  Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Events shown:     Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Event sort order: Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw
+Thresholds:       0.1 100 100 100 100 100 100 100 100
+Include dirs:     
+User annotated:   cachegrind.out.9430
+Auto-annotation:  on
+
+--------------------------------------------------------------------------------
+Ir                     I1mr                ILmr               Dr                     D1mr                 DLmr                Dw                     D1mw                 DLmw                 
+--------------------------------------------------------------------------------
+7,426,696,543 (100.0%) 50,940,875 (100.0%) 8,016,607 (100.0%) 1,838,695,292 (100.0%) 128,787,326 (100.0%) 88,631,006 (100.0%) 1,335,308,173 (100.0%) 171,662,897 (100.0%) 115,399,152 (100.0%)  PROGRAM TOTALS
+
+--------------------------------------------------------------------------------
+Ir                     I1mr                ILmr               Dr                   D1mr                 DLmr                Dw                   D1mw                 DLmw                  file:function
+--------------------------------------------------------------------------------
+3,573,546,057 (48.12%) 23,694,188 (46.51%) 4,605,407 (57.45%) 732,164,976 (39.82%)  11,574,933 ( 8.99%)  2,131,698 ( 2.41%) 470,965,153 (35.27%)  66,361,966 (38.66%)  11,837,330 (10.26%)  ???:???
+  734,864,144 ( 9.89%)    120,350 ( 0.24%)    12,371 ( 0.15%) 213,946,342 (11.64%) 102,893,289 (79.89%) 83,860,129 (94.62%) 213,416,904 (15.98%) 102,985,522 (59.99%) 102,801,012 (89.08%)  ./string/../sysdeps/x86_64/multiarch/memmove-vec-unaligned-erms.S:__memcpy_avx_unaligned_erms
+   96,687,356 ( 1.30%)      7,679 ( 0.02%)       422 ( 0.01%)  34,435,565 ( 1.87%)   3,598,029 ( 2.79%)     37,602 ( 0.04%)   8,067,176 ( 0.60%)       5,277 ( 0.00%)         146 ( 0.00%)  ./elf/./elf/dl-lookup.c:do_lookup_x
+   93,867,880 ( 1.26%)      1,866 ( 0.00%)     1,199 ( 0.01%)  22,086,560 ( 1.20%)           0                   0           24,847,380 ( 1.86%)           0                    0           /home/tanja/Documents/matf/vs/2023_Analysis_vpaint/vpaint/src/VAC/../Third/Eigen/src/Core/DenseCoeffsBase.h:Eigen::DenseCoeffsBase<Eigen::Matrix<double, 2, 1, 0, 2, 1>, 0>::coeff(long) const
+   88,929,086 ( 1.20%)    180,923 ( 0.36%)     8,828 ( 0.11%)  15,316,588 ( 0.83%)       2,720 ( 0.00%)          0            6,582,332 ( 0.49%)     111,319 ( 0.06%)      10,136 ( 0.01%)  ???:QBezier::addToPolygon(QDataBuffer<QPointF>&, double) const
+
+...
+...
+...
+```
+
+Od funkcija vezanih za projekat, najviše puta se izvršava funkcija iz spoljašnje biblioteke Eigen `DenseCoeffsBase<Eigen::Matrix<double, 2, 1, 0, 2, 1>, 0>::coeff(long)`.Takođe primećujemo da je broj promašaja keša vezana za tu funkciju veoma nizak što ukazuje na efikasnost. Zapravo, pregledom [celog izveštaja](valgrind/cachegrind/cachegrind-report.txt) primećujemo da većina funkcija napisana u okviru projekta VPaint ili biblioteke Eigen ima relativno mali broj promašaja čitanja/pisanja keš memorije.
+
+Još pregledniji način analize izveštaja je pomoču alata KCachegrind.
+
+```bash
+kcachegrind cachegrind.out.*
+```
+
+Pomoću grafičkog korisničkog interfejsa možemo da pregledamo svaku funkciju pojedinačno i da vidimo u kom delu koda ima najviše čitanja, pisanja, promašaja.
+
+Primer za funkciju koja ima nešto veći broj promašaja čitanja keša podataka:
+
+![kcachegrind](valgrind/cachegrind/kcachegrind.png)
 
 
 ## Perf
+
+Perf je alat za profajliranje na Linux sistemima. Perf pruža mogućnost merenja događaja iz različitih izvora kao na primer, brojača kernela i procesora. Ovaj alat se može instalirati na sledeći način:
+
+```
+sudo apt install perf
+```
+
+Za vizuelizaciju može da se koristi alat `hotspot`, projekat otvorenog koda.
+
+```bash
+sudo apt install hotspot
+sudo hotspot perf.data
+```
+
+![hotspot](perf/hotspot-heatmap.png)
