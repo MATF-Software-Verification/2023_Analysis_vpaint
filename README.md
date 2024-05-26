@@ -17,7 +17,11 @@
     - Cachegrind
 - Perf
 
-## :memo: Zaključci
+## :memo: Zaključak
+
+Projekat je prilično kvalitetan ali i dosta obiman, pa samim tim i postoje propusti u vidu mrtvog koda, slabe čitljivosti, stilskih propusta. Što se tiče performansi - nisu uočeni veći propusti. Bilo bi dobro refaktorisati neke metode radi bolje čitljivosti, međutim pohvalno je što postoji veliki broj komentara u kodu koji predstavljaju dokumentaciju ili razjašnjavaju logiku neke funkcije.
+
+Po [rečima autora](https://github.com/dalboris/vpaint/?tab=readme-ov-file#disclaimer) VPaint-a, ovaj projekat je više eksperimentalnog i istraživačkog tipa, pa samim tim je program nestabilniji i sklon greškama.
 
 ## :woman_technologist: Autor
 
