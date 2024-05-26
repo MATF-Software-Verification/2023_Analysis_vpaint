@@ -327,16 +327,26 @@ Perf je alat za profajliranje na Linux sistemima. Perf pruža mogućnost merenja
 ```
 sudo apt install perf
 ```
-
+Pomoću ovog alata možemo prikupimo statistike pozivima funkcija, tj. o grafu poziva funkcija programa:
 
 ```bash
 sudo perf record --call-graph dwarf ./../build/src/Gui/VPaint
-sudo perf report
 ```
+Argument `--call-graph` označava da `Perf` prikuplja informacije o grafu poziva funkcija, a argumentom `dwarf` označavamo da želimo da prikupimo informacije o steku (*stack trace*). Komandom `perf report` možemo da pogledamo dobijeni izveštaj:
 
-![perf](perf/perf-report.png)
+![perf report](perf/perf-report.png)
 
-Za vizuelizaciju može da se koristi alat `hotspot`, projekat otvorenog koda.
+U koloni Children se nalazi koliko vremena se izvršava funkcija zajedno sa funkcijama koje ona poziva u odnosu na ukupno vreme izvršavanja programa izraženo u procentima. Kolona Self ozačava koliko vremena se sama funkcija izvršava u odnosu na ukupno vreme izvršavanja programa izraženo u procentima.
+
+Na osnovu dobijenog izveštaja može se primetiti da najviše vremena oduzimaju funkcije iz Qt biblioteke, dok iz VPaint projekta najduže se izvršava funkcija main što je i očekivano.
+
+Od drugih funkcija iz VPaint projekta koje se malo duže izvršavaju su funkcije vezane za iscrtavanje, što takođe ima smisla jer smo već videli da se one češće pozivaju od ostalih funkcija:
+
+![perf-report2](perf/perf-report2.png)
+
+Međutim, vreme izvršavanja pojedinačnih funkcija nije kritično što ukazuje na solidne performanse projekta.
+
+Za vizuelizaciju pomoću vatrenog grafika može da se koristi alat `hotspot`, projekat otvorenog koda. Hotspot je alat koji služi za vizuelizaciju izveštaja dobijenih od Perf alata, a ujedno je moguće pokrenuti i perf analizu iz grafičkog korisničkog interfejsa.
 
 ```bash
 sudo apt install hotspot
@@ -344,3 +354,5 @@ sudo hotspot perf.data
 ```
 
 ![hotspot](perf/hotspot-heatmap.png)
+
+Na x-osi je populacija uzorka, dok y-osa predstavlja dubinu steka.
