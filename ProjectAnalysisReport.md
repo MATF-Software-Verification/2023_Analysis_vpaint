@@ -300,7 +300,7 @@ Ir                     I1mr                ILmr               Dr                
 ...
 ```
 
-Od funkcija vezanih za projekat, najviše puta se izvršava funkcija iz spoljašnje biblioteke Eigen `DenseCoeffsBase<Eigen::Matrix<double, 2, 1, 0, 2, 1>, 0>::coeff(long)`.Takođe primećujemo da je broj promašaja keša vezana za tu funkciju veoma nizak što ukazuje na efikasnost. Zapravo, pregledom [celog izveštaja](valgrind/cachegrind/cachegrind-report.txt) primećujemo da većina funkcija napisana u okviru projekta VPaint ili biblioteke Eigen ima relativno mali broj promašaja čitanja/pisanja keš memorije.
+Od funkcija vezanih za projekat, najviše puta se izvršava funkcija iz spoljašnje biblioteke Eigen `DenseCoeffsBase<Eigen::Matrix<double, 2, 1, 0, 2, 1>, 0>::coeff(long)`. Takođe primećujemo da je broj promašaja keša vezana za tu funkciju veoma nizak što ukazuje na efikasnost. Zapravo, pregledom [celog izveštaja](valgrind/cachegrind/cachegrind-report.txt) primećujemo da većina funkcija napisana u okviru projekta VPaint ili biblioteke Eigen ima relativno mali broj promašaja čitanja/pisanja keš memorije.
 
 Još pregledniji način analize izveštaja je pomoču alata KCachegrind.
 
@@ -314,6 +314,11 @@ Primer za funkciju koja ima nešto veći broj promašaja čitanja keša podataka
 
 ![kcachegrind](valgrind/cachegrind/kcachegrind.png)
 
+Ova funkcija pristupa nizu u kom su sačuvani trouglovi i iscrtava ih pomoću funkcija biblioteke GLU. S obzirom na to da je iscrtavanje glavna funkcionalnost programa i da se ona sva rade pomoću trouglova, očekivano je da imamo dosta pristupa pa i promašaja u keš memoriji gde se čuva ovaj niz. Možemo da proverimo da li se ova funkcija češće poziva od drugih:
+
+![kcachegrind2](valgrind/cachegrind/kcachegrind-ir.png)
+
+Zaista, funkcija `draw()` se poziva najviše puta od svih drugih iz projekta VPaint.
 
 ## Perf
 
@@ -322,6 +327,14 @@ Perf je alat za profajliranje na Linux sistemima. Perf pruža mogućnost merenja
 ```
 sudo apt install perf
 ```
+
+
+```bash
+sudo perf record --call-graph dwarf ./../build/src/Gui/VPaint
+sudo perf report
+```
+
+![perf](perf/perf-report.png)
 
 Za vizuelizaciju može da se koristi alat `hotspot`, projekat otvorenog koda.
 
